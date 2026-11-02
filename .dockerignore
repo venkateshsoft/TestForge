@@ -1,0 +1,10 @@
+.venv
+__pycache__
+*.pyc
+.pytest_cache
+.testforge-data
+.env
+tests
+app/*_old.py
+app/*_backup.py
+*.bak

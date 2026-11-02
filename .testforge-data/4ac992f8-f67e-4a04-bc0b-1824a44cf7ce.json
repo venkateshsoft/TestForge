@@ -1,0 +1,178 @@
+{
+  "id": "4ac992f8-f67e-4a04-bc0b-1824a44cf7ce",
+  "created_at": "2026-10-29T10:29:29.234270Z",
+  "request": {
+    "title": "Patient Registration API Validation",
+    "description": "Domain: Healthcare PMS / RCM\n\nBuild a Python API automation framework using pytest and Requests to validate a patient registration REST API.\n\nThe API base URL is http://127.0.0.1:8000.\n\nThe POST endpoint /api/patients accepts a JSON payload containing firstName, lastName, and email. Successful registration returns HTTP 201 and a JSON response containing patientId, firstName, lastName, and email.\n\nGenerate these six tests:\n\n1. Successful registration: Verify HTTP 201, a non-empty patientId, and matching patient details.\n\n2. Missing required field: Omit email and verify HTTP 400 with a meaningful validation error. Verify no patient record was created.\n\n3. Invalid email: Submit an invalid email and verify HTTP 400 with a validation error.\n\n4. Duplicate registration: Submit the same email twice. Verify the second request returns HTTP 409 and only one patient record exists.\n\n5. Patient retrieval: Retrieve a patient by patientId and verify the returned details.\n\n6. Regression: Register two patients with different email addresses, verify distinct patientIds, and retrieve both independently.\n\nUse reusable API client methods, fixtures, environment-based configuration, bounded timeouts, synthetic test data, and meaningful assertions. Generate all required scripts, configuration, requirements.txt, README, and test execution report.\n\nDo not generate placeholder tests that only call pytest.skip(). Do not claim that unimplemented tests passed. Identify any unsupported requirements explicitly.",
+    "domain": "API",
+    "language": "Python",
+    "framework": "pytest + Requests",
+    "environment": "local or test environment",
+    "authentication": "Configure through environment variables",
+    "generation_mode": "Generate a complete automation framework"
+  },
+  "interpretation": {
+    "objective": "Validate: Patient Registration API Validation",
+    "system_under_test": "Patient Registration API Validation",
+    "facts": [
+      "Domain: Healthcare PMS / RCM\n\nBuild a Python API automation framework using pytest and Requests to validate a patient registration REST API.\n\nThe API base URL is http://127.0.0.1:8000.\n\nThe POST endpoint /api/patients accepts a JSON payload containing firstName, lastName, and email. Successful registration returns HTTP 201 and a JSON response containing patientId, firstName, lastName, and email.\n\nGenerate these six tests:\n\n1. Successful registration: Verify HTTP 201, a non-empty patientId, and matching patient details.\n\n2. Missing required field: Omit email and verify HTTP 400 with a meaningful validation error. Verify no patient record was created.\n\n3. Invalid email: Submit an invalid email and verify HTTP 400 with a validation error.\n\n4. Duplicate registration: Submit the same email twice. Verify the second request returns HTTP 409 and only one patient record exists.\n\n5. Patient retrieval: Retrieve a patient by patientId and verify the returned details.\n\n6. Regression: Register two patients with different email addresses, verify distinct patientIds, and retrieve both independently.\n\nUse reusable API client methods, fixtures, environment-based configuration, bounded timeouts, synthetic test data, and meaningful assertions. Generate all required scripts, configuration, requirements.txt, README, and test execution report.\n\nDo not generate placeholder tests that only call pytest.skip(). Do not claim that unimplemented tests passed. Identify any unsupported requirements explicitly."
+    ],
+    "assumptions": [
+      "Endpoints, payloads, credentials, expected statuses, and identity fields must come from the real API contract.",
+      "Concurrency verification requires a read-back endpoint that accurately reflects persisted records.",
+      "Tests use synthetic data in a non-production environment."
+    ],
+    "acceptance_criteria": [
+      "Configured HTTP statuses are asserted explicitly.",
+      "Unexpected status codes and malformed JSON produce actionable failures.",
+      "Concurrency tests verify the logical-record count through a configured read-back endpoint.",
+      "No credentials are embedded in generated source."
+    ],
+    "risks": [
+      "The scenario does not provide a verified API schema or endpoint catalog.",
+      "Cross-pod routing cannot be proven without routing/observability configuration."
+    ],
+    "open_questions": [
+      "What are the registration endpoint, payload, authentication method, and response schema?",
+      "How can the persisted patient be queried by its logical identity?",
+      "Which status codes are documented for success, duplicate requests, and invalid input?"
+    ]
+  },
+  "test_cases": [
+    {
+      "id": "TF-001",
+      "title": "Validate registration happy path",
+      "category": "Positive",
+      "priority": "High",
+      "preconditions": [
+        "Documented API contract and non-production test environment are configured"
+      ],
+      "steps": [
+        "Submit configured valid payload",
+        "Assert documented success status",
+        "Validate JSON response"
+      ],
+      "expected": "Registration returns a configured success status and a valid response body.",
+      "applicable": true
+    },
+    {
+      "id": "TF-002",
+      "title": "Reject invalid registration input",
+      "category": "Negative",
+      "priority": "High",
+      "preconditions": [
+        "Invalid payload and expected client-error statuses are configured"
+      ],
+      "steps": [
+        "Submit configured invalid payload",
+        "Assert documented client-error status"
+      ],
+      "expected": "Invalid input is rejected with a configured client-error status.",
+      "applicable": true
+    },
+    {
+      "id": "TF-003",
+      "title": "Verify concurrent duplicate registration",
+      "category": "Concurrency",
+      "priority": "Critical",
+      "preconditions": [
+        "Registration payload, identity field, and read-back endpoint are configured"
+      ],
+      "steps": [
+        "Send identical requests concurrently",
+        "Validate response statuses",
+        "Read records by logical identity",
+        "Assert exactly one matching record exists"
+      ],
+      "expected": "Concurrent duplicate submissions result in exactly one logical record.",
+      "applicable": true
+    },
+    {
+      "id": "TF-004",
+      "title": "Verify configured timeout behavior",
+      "category": "Resilience",
+      "priority": "Medium",
+      "preconditions": [
+        "Timeout contract and test endpoint are configured"
+      ],
+      "steps": [
+        "Send request with configured timeout",
+        "Assert documented timeout/response behavior"
+      ],
+      "expected": "Timeout handling follows the configured contract; retry policy requires a separately documented test.",
+      "applicable": true
+    }
+  ],
+  "files": [
+    {
+      "path": "README.md",
+      "content": "# TestForge generated project\n\n## Scenario\nDomain: Healthcare PMS / RCM\n\nBuild a Python API automation framework using pytest and Requests to validate a patient registration REST API.\n\nThe API base URL is http://127.0.0.1:8000.\n\nThe POST endpoint /api/patients accepts a JSON payload containing firstName, lastName, and email. Successful registration returns HTTP 201 and a JSON response containing patientId, firstName, lastName, and email.\n\nGenerate these six tests:\n\n1. Successful registration: Verify HTTP 201, a non-empty patientId, and matching patient details.\n\n2. Missing required field: Omit email and verify HTTP 400 with a meaningful validation error. Verify no patient record was created.\n\n3. Invalid email: Submit an invalid email and verify HTTP 400 with a validation error.\n\n4. Duplicate registration: Submit the same email twice. Verify the second request returns HTTP 409 and only one patient record exists.\n\n5. Patient retrieval: Retrieve a patient by patientId and verify the returned details.\n\n6. Regression: Register two patients with different email addresses, verify distinct patientIds, and retrieve both independently.\n\nUse reusable API client methods, fixtures, environment-based configuration, bounded timeouts, synthetic test data, and meaningful assertions. Generate all required scripts, configuration, requirements.txt, README, and test execution report.\n\nDo not generate placeholder tests that only call pytest.skip(). Do not claim that unimplemented tests passed. Identify any unsupported requirements explicitly.\n\n## Configuration\nUse synthetic data and a non-production environment. The generator does not invent undocumented API paths,\npayload fields, or response contracts. Set the variables below from the real API documentation.\n\nThe concurrency test sends identical requests through independent HTTP sessions, then queries a configured\nread-back endpoint and asserts exactly one matching logical record. This does not prove requests reached\ndifferent Kubernetes pods; pod routing or observability must be configured separately.\n\n## Setup (PowerShell)\n```powershell\npython -m venv .venv\n.\\.venv\\Scripts\\Activate.ps1\npip install -r requirements.txt\nCopy-Item .env.example .env\n```\n\n## Key variables\n- `TESTFORGE_REGISTER_ENDPOINT`: registration API path.\n- `TESTFORGE_REGISTER_PAYLOAD_JSON`: valid synthetic request body as JSON.\n- `TESTFORGE_SUCCESS_STATUS_CODES`: success statuses, default `200,201`.\n- `TESTFORGE_INVALID_PAYLOAD_JSON`: invalid request body.\n- `TESTFORGE_CLIENT_ERROR_STATUS_CODES`: client-error statuses, default `400,422`.\n- `TESTFORGE_LOOKUP_ENDPOINT`: read-back endpoint for persisted records.\n- `TESTFORGE_IDENTITY_PATH`: dotted path to logical identity in registration payload.\n- `TESTFORGE_LOOKUP_RECORDS_PATH`: dotted path to record/list in lookup response.\n- `TESTFORGE_LOOKUP_IDENTITY_FIELD`: dotted path to identity field within each returned record.\n- `TESTFORGE_LOOKUP_QUERY_PARAM`: lookup query parameter, default `identity`.\n- `TESTFORGE_CONCURRENCY_WORKERS`: concurrent requests, default `8`.\n- `TESTFORGE_CONCURRENT_ACCEPTED_STATUS_CODES`: accepted concurrency statuses, default `200,201,409`.\n- `TESTFORGE_BASE_URL`, `TESTFORGE_TOKEN`, `TESTFORGE_TIMEOUT_SECONDS`: connection settings.\n\n## Run\n```powershell\npython -m pytest -v\n```\n\nTests lacking required configuration are skipped with an explicit explanation. Configured tests perform HTTP requests\nand assert the documented status and record-count expectations.\n"
+    },
+    {
+      "path": "requirements.txt",
+      "content": "pytest>=8.3,<9\nrequests>=2.32,<3\npython-dotenv>=1.0,<2\n"
+    },
+    {
+      "path": ".env.example",
+      "content": "TESTFORGE_BASE_URL=http://localhost:8000\nTESTFORGE_TOKEN=\nTESTFORGE_TIMEOUT_SECONDS=10\nTESTFORGE_REGISTER_ENDPOINT=\nTESTFORGE_REGISTER_PAYLOAD_JSON=\nTESTFORGE_SUCCESS_STATUS_CODES=200,201\nTESTFORGE_INVALID_PAYLOAD_JSON=\nTESTFORGE_CLIENT_ERROR_STATUS_CODES=400,422\nTESTFORGE_LOOKUP_ENDPOINT=\nTESTFORGE_IDENTITY_PATH=\nTESTFORGE_LOOKUP_RECORDS_PATH=\nTESTFORGE_LOOKUP_IDENTITY_FIELD=\nTESTFORGE_LOOKUP_QUERY_PARAM=identity\nTESTFORGE_CONCURRENCY_WORKERS=8\nTESTFORGE_CONCURRENT_ACCEPTED_STATUS_CODES=200,201,409\nTESTFORGE_EXPECT_TIMEOUT=false\n"
+    },
+    {
+      "path": "config/settings.py",
+      "content": "from __future__ import annotations\nimport os\n\nBASE_URL = os.getenv(\"TESTFORGE_BASE_URL\", \"http://localhost:8000\").rstrip(\"/\")\nTOKEN = os.getenv(\"TESTFORGE_TOKEN\")\nTIMEOUT_SECONDS = float(os.getenv(\"TESTFORGE_TIMEOUT_SECONDS\", \"10\"))\n"
+    },
+    {
+      "path": "clients/api_client.py",
+      "content": "from __future__ import annotations\nimport requests\nfrom config.settings import BASE_URL, TIMEOUT_SECONDS, TOKEN\n\nclass ApiClient:\n    def __init__(self, base_url: str = BASE_URL) -> None:\n        self.base_url = base_url.rstrip('/')\n        self.session = self.new_session()\n\n    def new_session(self) -> requests.Session:\n        session = requests.Session()\n        if TOKEN:\n            session.headers.update({'Authorization': f'Bearer {TOKEN}'})\n        return session\n\n    def get(self, path: str, **kwargs) -> requests.Response:\n        return self.session.get(f'{self.base_url}{path}', timeout=TIMEOUT_SECONDS, **kwargs)\n\n    def post(self, path: str, json: dict, **kwargs) -> requests.Response:\n        return self.session.post(f'{self.base_url}{path}', json=json, timeout=TIMEOUT_SECONDS, **kwargs)\n"
+    },
+    {
+      "path": "tests/conftest.py",
+      "content": "import pytest\nfrom clients.api_client import ApiClient\n\n@pytest.fixture\ndef api_client() -> ApiClient:\n    return ApiClient()\n"
+    },
+    {
+      "path": "tests/api/test_patient_registration_api_validation.py",
+      "content": "from __future__ import annotations\n\nimport json\nimport os\n\n\ndef _status_codes(name: str, default: str) -> set[int]:\n    import pytest\n    try:\n        result = {int(x.strip()) for x in os.getenv(name, default).split(\",\") if x.strip()}\n    except ValueError as exc:\n        pytest.fail(f\"{name} must contain comma-separated HTTP status codes: {exc}\")\n    if not result:\n        pytest.fail(f\"{name} must contain at least one status code\")\n    return result\n\n\ndef _path(value, dotted_path: str):\n    current = value\n    for part in dotted_path.split(\".\"):\n        if isinstance(current, dict):\n            current = current.get(part)\n        elif isinstance(current, list) and part.isdigit():\n            index = int(part)\n            current = current[index] if index < len(current) else None\n        else:\n            return None\n    return current\n\n\ndef _payload(name: str):\n    import pytest\n    raw = os.getenv(name)\n    if not raw:\n        pytest.skip(f\"Set {name} using the documented API contract\")\n    try:\n        return json.loads(raw)\n    except json.JSONDecodeError as exc:\n        pytest.fail(f\"{name} must contain valid JSON: {exc}\")\n\n\ndef _json_if_present(response):\n    import pytest\n    if response.content:\n        try:\n            response.json()\n        except ValueError as exc:\n            pytest.fail(f\"Expected JSON response: {response.text[:500]} ({exc})\")\n\n\ndef test_registration_happy_path(api_client):\n    import pytest\n    endpoint = os.getenv(\"TESTFORGE_REGISTER_ENDPOINT\")\n    if not endpoint:\n        pytest.skip(\"Set TESTFORGE_REGISTER_ENDPOINT from the API contract\")\n    payload = _payload(\"TESTFORGE_REGISTER_PAYLOAD_JSON\")\n    expected = _status_codes(\"TESTFORGE_SUCCESS_STATUS_CODES\", \"200,201\")\n    response = api_client.post(endpoint, json=payload)\n    assert response.status_code in expected, (\n        f\"Expected {sorted(expected)}, got {response.status_code}: {response.text[:1000]}\"\n    )\n    _json_if_present(response)\n\n\ndef test_invalid_registration_is_rejected(api_client):\n    import pytest\n    endpoint = os.getenv(\"TESTFORGE_REGISTER_ENDPOINT\")\n    if not endpoint:\n        pytest.skip(\"Set TESTFORGE_REGISTER_ENDPOINT from the API contract\")\n    payload = _payload(\"TESTFORGE_INVALID_PAYLOAD_JSON\")\n    expected = _status_codes(\"TESTFORGE_CLIENT_ERROR_STATUS_CODES\", \"400,422\")\n    response = api_client.post(endpoint, json=payload)\n    assert response.status_code in expected, (\n        f\"Expected client error {sorted(expected)}, got {response.status_code}: \"\n        f\"{response.text[:1000]}\"\n    )\n\n\ndef test_concurrent_duplicate_registration_creates_one_record(api_client):\n    from concurrent.futures import ThreadPoolExecutor\n    import pytest\n\n    endpoint = os.getenv(\"TESTFORGE_REGISTER_ENDPOINT\")\n    lookup_endpoint = os.getenv(\"TESTFORGE_LOOKUP_ENDPOINT\")\n    identity_path = os.getenv(\"TESTFORGE_IDENTITY_PATH\")\n    records_path = os.getenv(\"TESTFORGE_LOOKUP_RECORDS_PATH\")\n    record_identity_path = os.getenv(\"TESTFORGE_LOOKUP_IDENTITY_FIELD\")\n    missing = [key for key, value in {\n        \"TESTFORGE_REGISTER_ENDPOINT\": endpoint,\n        \"TESTFORGE_LOOKUP_ENDPOINT\": lookup_endpoint,\n        \"TESTFORGE_IDENTITY_PATH\": identity_path,\n        \"TESTFORGE_LOOKUP_RECORDS_PATH\": records_path,\n        \"TESTFORGE_LOOKUP_IDENTITY_FIELD\": record_identity_path,\n    }.items() if not value]\n    if missing:\n        pytest.skip(\"Configure API contract settings: \" + \", \".join(missing))\n\n    payload = _payload(\"TESTFORGE_REGISTER_PAYLOAD_JSON\")\n    identity = _path(payload, identity_path)\n    if identity in (None, \"\"):\n        pytest.fail(f\"TESTFORGE_IDENTITY_PATH={identity_path!r} not found in request payload\")\n    workers = int(os.getenv(\"TESTFORGE_CONCURRENCY_WORKERS\", \"8\"))\n    if workers < 2 or workers > 100:\n        pytest.fail(\"TESTFORGE_CONCURRENCY_WORKERS must be between 2 and 100\")\n    accepted = _status_codes(\"TESTFORGE_CONCURRENT_ACCEPTED_STATUS_CODES\", \"200,201,409\")\n\n    def send():\n        return api_client.new_session().post(endpoint, json=payload)\n\n    with ThreadPoolExecutor(max_workers=workers) as pool:\n        responses = list(pool.map(lambda _: send(), range(workers)))\n    unexpected = [(r.status_code, r.text[:300]) for r in responses if r.status_code not in accepted]\n    assert not unexpected, f\"Unexpected response(s); accepted={sorted(accepted)}: {unexpected[:3]}\"\n\n    lookup = api_client.get(\n        lookup_endpoint,\n        params={os.getenv(\"TESTFORGE_LOOKUP_QUERY_PARAM\", \"identity\"): identity},\n    )\n    assert lookup.status_code == 200, (\n        f\"Read-back lookup failed: {lookup.status_code}: {lookup.text[:1000]}\"\n    )\n    try:\n        body = lookup.json()\n    except ValueError as exc:\n        pytest.fail(f\"Lookup endpoint did not return JSON: {exc}\")\n    records = _path(body, records_path)\n    if isinstance(records, dict):\n        records = [records]\n    assert isinstance(records, list), \"TESTFORGE_LOOKUP_RECORDS_PATH must resolve to a list or record\"\n    matches = [item for item in records if _path(item, record_identity_path) == identity]\n    assert len(matches) == 1, (\n        f\"Expected exactly one logical record for {identity!r}, found {len(matches)}. \"\n        \"Check the lookup response paths and endpoint behavior.\"\n    )\n\n\ndef test_registration_timeout_behavior(api_client):\n    import requests\n    import pytest\n    endpoint = os.getenv(\"TESTFORGE_REGISTER_ENDPOINT\")\n    if not endpoint:\n        pytest.skip(\"Set TESTFORGE_REGISTER_ENDPOINT from the API contract\")\n    payload = _payload(\"TESTFORGE_REGISTER_PAYLOAD_JSON\")\n    timeout = float(os.getenv(\"TESTFORGE_TIMEOUT_SECONDS\", \"10\"))\n    if os.getenv(\"TESTFORGE_EXPECT_TIMEOUT\", \"false\").lower() == \"true\":\n        with pytest.raises(requests.Timeout):\n            api_client.post(endpoint, json=payload, timeout=timeout)\n    else:\n        response = api_client.post(endpoint, json=payload, timeout=timeout)\n        assert response.status_code < 500, (\n            f\"Unexpected server error {response.status_code}: {response.text[:1000]}\"\n        )\n\n\n"
+    },
+    {
+      "path": "pyproject.toml",
+      "content": "[tool.pytest.ini_options]\naddopts = \"-ra\"\ntestpaths = [\"tests\"]\n\n[tool.ruff]\nline-length = 100\n"
+    },
+    {
+      "path": ".gitignore",
+      "content": ".env\n.venv/\n.pytest_cache/\n__pycache__/\nreports/*\n!reports/.gitkeep\n"
+    },
+    {
+      "path": "reports/.gitkeep",
+      "content": ""
+    }
+  ],
+  "validation": {
+    "status": "passed",
+    "checks": [
+      {
+        "name": "path safety",
+        "status": "passed",
+        "message": "All file paths are workspace-relative."
+      },
+      {
+        "name": "secret scan",
+        "status": "passed",
+        "message": "No obvious hardcoded secrets detected."
+      },
+      {
+        "name": "python syntax",
+        "status": "passed",
+        "message": "All generated Python files compile."
+      },
+      {
+        "name": "project manifest",
+        "status": "passed",
+        "message": "Required project files are present."
+      }
+    ],
+    "validated_at": "2026-10-29T10:29:30.432145Z"
+  },
+  "metadata": {
+    "provider": "local",
+    "prompt_version": "local-v1"
+  }
+}

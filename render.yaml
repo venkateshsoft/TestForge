@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: testforge-ai
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.11
+      - key: TESTFORGE_DATA_DIR
+        value: /tmp/testforge-data
+      - key: ALLOWED_HOSTS
+        sync: false
+      - key: RATE_LIMIT_PER_MINUTE
+        value: "60"
+      - key: LOG_LEVEL
+        value: INFO

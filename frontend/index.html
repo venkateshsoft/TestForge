@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TestForge AI — Test Automation Studio</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand"><span class="brand-mark">TF</span><span>TestForge <em>AI</em></span></div>
+      <p class="eyebrow">ENGINEERING STUDIO</p>
+      <nav>
+        <a class="active" href="#workspace">✦ <span>New generation</span></a>
+        <a href="#projects">▣ <span>Generated projects</span></a>
+        <a href="#validation">✓ <span>Validation</span></a>
+        <a class="muted" href="#">◌ <span>Execution <small>coming soon</small></span></a>
+      </nav>
+      <div class="sidebar-foot"><span class="pulse"></span> Local provider ready<br /><small>Safe generation mode</small></div>
+    </aside>
+    <main>
+      <header class="topbar"><div><span class="crumb">WORKSPACE /</span> NEW GENERATION</div><div class="status-dot"><span></span> System operational</div></header>
+      <section id="workspace" class="hero"><div><p class="eyebrow accent">INTELLIGENT TEST AUTOMATION</p><h1>From plain English<br /><span>to reliable testing.</span></h1><p class="lede">Describe the behavior you need to verify. TestForge turns it into a structured plan, maintainable automation, and a validation trail you can trust.</p></div><div class="hero-orbit"><div class="orbit-ring"></div><div class="orbit-core">TF<br /><small>AI</small></div></div></section>
+      <section class="workspace-grid">
+        <form id="generation-form" class="panel form-panel">
+          <div class="panel-title"><div><span class="step">01</span><h2>Describe your scenario</h2></div><span class="required">Required fields marked *</span></div>
+          <label>Scenario title *<input id="title" required maxlength="160" value="Duplicate patient registration" /></label>
+          <label>Plain-English requirement *<textarea id="description" required minlength="20" rows="8">When two requests register the same logical patient simultaneously through different Kubernetes pods, ensure that only one patient record is created. Validate API responses, patient IDs, database consistency, application logs, retry behavior, and regression scenarios.</textarea></label>
+          <div class="field-row"><label>Testing domain<select id="domain"><option>API</option><option>Web UI</option><option>Database</option><option>Performance</option><option>Kubernetes / Cloud Native</option><option>Healthcare PMS / RCM</option><option>Hybrid / End-to-End</option></select></label><label>Framework<select id="framework"><option>pytest + Requests</option><option>Playwright + pytest</option><option>Locust</option><option>Selenium + pytest</option></select></label></div>
+          <div class="field-row"><label>Target environment<input id="environment" value="local or test environment" /></label><label>Authentication<input id="authentication" value="Configure through environment variables" /></label></div>
+          <div class="form-actions"><span class="safe-note">⌁ Synthetic data only · no secrets stored</span><button type="submit" id="generate">Generate automation solution <span>→</span></button></div>
+        </form>
+        <aside class="panel journey-panel"><div class="panel-title"><div><span class="step">FLOW</span><h2>Engineering path</h2></div></div><div class="journey"><div class="journey-item active"><b>01</b><div><strong>Understand</strong><p>Facts, assumptions, risks</p></div></div><div class="journey-item"><b>02</b><div><strong>Design</strong><p>Coverage-oriented test plan</p></div></div><div class="journey-item"><b>03</b><div><strong>Generate</strong><p>Coherent project files</p></div></div><div class="journey-item"><b>04</b><div><strong>Validate</strong><p>Static checks before execution</p></div></div></div><div class="trust-box"><span>◈</span><div><strong>Transparent by design</strong><p>Generated, validated, executed, and approved are separate states.</p></div></div></aside>
+      </section>
+      <section id="result" class="result-section hidden"><div class="section-heading"><div><p class="eyebrow accent">GENERATION RESULT</p><h2 id="result-title">Your automation blueprint</h2></div><a id="download" class="download" href="#">Download project .zip ↓</a></div><div class="result-grid"><div class="panel interpretation"><div class="panel-title"><div><span class="step">02</span><h2>Requirement interpretation</h2></div></div><div id="interpretation-content"></div></div><div class="panel validation"><div class="panel-title"><div><span class="step">03</span><h2>Validation status</h2></div></div><div id="validation-content"><p class="empty">Run validation to inspect generated files.</p></div><button id="validate" class="secondary">Run static validation</button></div></div><div class="panel cases"><div class="panel-title"><div><span class="step">04</span><h2>Test scenario matrix</h2></div><span id="case-count" class="badge"></span></div><div class="table-wrap"><table><thead><tr><th>ID</th><th>Scenario</th><th>Category</th><th>Priority</th><th>Expected outcome</th></tr></thead><tbody id="cases-body"></tbody></table></div></div><div class="panel files"><div class="panel-title"><div><span class="step">05</span><h2>Generated project files</h2></div></div><div id="files-body" class="file-list"></div></div></section>
+      <div id="toast" class="toast"></div>
+    </main>
+  </div>
+  <script src="/app.js"></script>
+</body>
+</html>
