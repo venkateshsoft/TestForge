@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import os
 import re
+from collections import Counter
 
 from .models import (
+    CoverageSummary,
     Domain,
+    ExtractedRequirement,
     GeneratedFile,
     RequirementInterpretation,
     ScenarioRequest,
@@ -25,90 +28,111 @@ def _infer_sut(request: ScenarioRequest) -> str:
     return request.title
 
 
-def analyze(request: ScenarioRequest) -> tuple[RequirementInterpretation, list[TestCase]]:
-    description = request.description.lower()
-    concurrent = any(word in description for word in ("concurrent", "simultaneous", "race"))
-    duplicate = any(word in description for word in ("duplicate", "idempotency", "same patient"))
-    resilience = any(word in description for word in ("retry", "timeout", "resilience", "unavailable"))
+def _rule_matches(text: str, signals: tuple[str, ...]) -> list[str]:
+    return [signal for signal in signals if signal in text]
 
-    cases = [
-        TestCase(
-            id="TF-001",
-            title="Validate registration happy path",
-            category="Positive",
-            priority="High",
-            preconditions=["Documented API contract and non-production test environment are configured"],
-            steps=["Submit configured valid payload", "Assert documented success status", "Validate JSON response"],
-            expected="Registration returns a configured success status and a valid response body.",
-        ),
-        TestCase(
-            id="TF-002",
-            title="Reject invalid registration input",
-            category="Negative",
-            priority="High",
-            preconditions=["Invalid payload and expected client-error statuses are configured"],
-            steps=["Submit configured invalid payload", "Assert documented client-error status"],
-            expected="Invalid input is rejected with a configured client-error status.",
-        ),
+
+def _scenario(
+    number: int,
+    requirement: ExtractedRequirement,
+    title: str,
+    category: str,
+    priority: str,
+    steps: list[str],
+    expected: str,
+    feasibility: str,
+    evidence: list[str],
+) -> TestCase:
+    return TestCase(
+        id=f"TF-{number:03d}",
+        title=title,
+        category=category,
+        priority=priority,
+        requirement=f"{requirement.id}: {requirement.statement}",
+        preconditions=["A non-production target and synthetic data are available", "Documented configuration and acceptance criteria are supplied"],
+        steps=steps,
+        expected=expected,
+        automation_feasibility=feasibility,
+        validation_evidence=evidence,
+    )
+
+
+def analyze(request: ScenarioRequest) -> tuple[RequirementInterpretation, list[TestCase], CoverageSummary]:
+    text = f"{request.title} {request.description} {request.domain}".lower()
+    rules = [
+        ("WORKFLOW", "Primary functional workflow", "Functional", ("workflow", "register", "upgrade", "deploy", "schedule", "submit", "process"), "Validate the primary workflow and its documented business outcome.", "Validate the requested primary workflow", "High", ["Execute the documented workflow with configured inputs", "Assert each documented state transition and outcome"], "The workflow completes according to the supplied contract; no undocumented status or business rule is assumed."),
+        ("API", "API contract and response validation", "API validation", ("api", "http", "request", "response", "endpoint", "json"), "Validate request, response, status, and schema behaviour described by the requirement.", "Validate API contract behaviour", "High", ["Send a contract-valid request", "Assert configured response status and required fields", "Reject malformed or unexpected response content"], "The response satisfies the supplied API contract; exact status codes remain configurable when not provided."),
+        ("NEGATIVE", "Invalid and negative behaviour", "Negative", ("invalid", "malformed", "reject", "error", "negative"), "Verify invalid inputs and failure responses do not create unintended state.", "Reject invalid inputs safely", "High", ["Submit each documented invalid or malformed input", "Inspect error response and side effects"], "Invalid input is rejected according to the documented contract and does not create unintended state."),
+        ("BOUNDARY", "Boundary and limit conditions", "Boundary", ("boundary", "limit", "maximum", "minimum", "size", "capacity", "edge case"), "Verify behaviour at the explicit boundaries and limits stated by the requirement.", "Exercise stated boundary conditions", "Medium", ["Prepare values at, below, and above each stated boundary", "Assert documented acceptance or rejection"], "Boundary behaviour matches the supplied limits; no limit is invented when the requirement omits one."),
+        ("CONCURRENCY", "Concurrent request and race-condition handling", "Concurrency", ("concurrent", "simultaneous", "race", "parallel", "duplicate", "idempotent"), "Verify the invariant remains true when logically equivalent operations overlap.", "Protect the business invariant under concurrency", "Critical", ["Issue equivalent operations concurrently through independent clients", "Collect all responses", "Read back state and compare it with the required invariant"], "The stated invariant holds after concurrent activity; worker count and accepted statuses come from configuration."),
+        ("CONSISTENCY", "Data and session consistency", "Data integrity", ("consistency", "data integrity", "session", "subscriber", "record", "database", "transaction"), "Verify state remains consistent across the system boundaries named in the requirement.", "Verify cross-component consistency", "Critical", ["Capture relevant state before the workflow", "Execute the workflow", "Compare API, persisted, and session state"], "All named representations agree with the supplied consistency rule."),
+        ("FAILURE", "Dependency failure and error propagation", "Failure handling", ("dependency failure", "dependency", "unavailable", "partition", "error propagation", "downstream"), "Verify dependency failures are surfaced and contained according to the requirement.", "Handle dependency failure safely", "High", ["Introduce the documented dependency failure or test double", "Observe propagated error and side effects", "Restore the dependency"], "Failure handling matches the documented contract and does not silently corrupt state."),
+        ("RECOVERY", "Retry, timeout, and recovery behaviour", "Recovery and resilience", ("retry", "timeout", "recovery", "resilien", "restart", "recreate"), "Verify bounded retry, timeout, and recovery behaviour without duplicate side effects.", "Recover from transient failure", "High", ["Introduce a bounded transient failure or delay", "Observe retries and final outcome", "Verify recovery and state after restoration"], "Retries and recovery follow configured policy; no retry count or timeout is invented."),
+        ("HELM", "Helm installation, upgrade, validation, and rollback", "Deployment", ("helm", "helm chart"), "Verify the Helm lifecycle operations named by the requirement.", "Validate Helm lifecycle", "Critical", ["Install or upgrade the chart in an isolated namespace", "Validate rendered configuration and release status", "Exercise the documented failed-upgrade and rollback path when required"], "Helm commands and release state meet the supplied acceptance criteria; execution requires cluster credentials and is not performed by this application.", "Infrastructure specification only", ["helm lint output", "helm upgrade/history/status output", "rollback verification evidence"]),
+        ("ROLLING", "Rolling deployment and deployment status", "Deployment", ("rolling", "rollout", "deployment", "upgrade", "release"), "Verify rollout sequencing, deployment status, and availability during the requested deployment.", "Validate rolling deployment", "Critical", ["Start the documented rolling deployment", "Observe rollout status and available replicas", "Verify the new version is fully ready before completion"], "The rollout reaches the documented desired state without violating availability requirements.", "Infrastructure specification only", ["kubectl rollout status", "deployment conditions", "replica availability evidence"]),
+        ("READINESS", "Pod readiness and liveness probes", "Kubernetes", ("readiness", "liveness", "probe"), "Verify probe behaviour controls traffic and restart decisions as described.", "Validate readiness and liveness probes", "High", ["Inspect configured probe definitions", "Exercise not-ready and unhealthy states in a safe test deployment", "Observe routing and restart outcomes"], "Readiness and liveness outcomes match the configured probe contract; probe thresholds are not invented.", "Infrastructure specification only", ["deployment manifest", "pod conditions/events", "probe response evidence"]),
+        ("POD", "Pod failure and recovery", "Kubernetes", ("pod failure", "pod", "kubernetes", "cnf", "recreate", "crash"), "Verify failed pods are detected, replaced, and recovered without violating the stated service invariant.", "Validate pod failure and recovery", "Critical", ["Capture baseline pod and service state", "Induce the authorized test failure", "Observe replacement, readiness, and service recovery"], "The platform recovers according to the documented policy and the named service invariant remains true.", "Infrastructure specification only", ["pod events", "replacement pod readiness", "service health evidence"]),
+        ("ENVOY", "Envoy routing, backend exclusion, timeout, and retry", "Service routing", ("envoy", "routing", "backend", "traffic distribution", "healthy backend", "unhealthy backend"), "Verify service routing selects healthy backends, excludes unhealthy ones, and applies documented timeout/retry behaviour.", "Validate Envoy traffic routing", "High", ["Observe traffic to healthy backends", "Make one backend unhealthy in the test environment", "Verify exclusion, timeout, retry, and distribution behaviour"], "Routing follows the supplied policy; no traffic percentage or retry count is invented.", "Infrastructure specification only", ["Envoy access logs", "cluster/endpoint health", "request trace evidence"]),
+        ("TRAFFIC", "Traffic continuity during upgrade", "Availability", ("traffic continuity", "zero downtime", "availability", "service continuity", "no interruption"), "Verify traffic continues through the deployment or failure event described.", "Verify traffic continuity", "Critical", ["Generate controlled test traffic before and during the event", "Observe errors, latency, and routing", "Verify traffic after convergence"], "Traffic continuity meets the stated requirement; measurable thresholds remain configuration-driven.", "API/load scaffold plus infrastructure evidence", ["request result timeline", "latency/error measurements", "routing and rollout timeline"]),
+        ("PERFORMANCE", "Performance, load, and scalability", "Performance", ("performance", "load", "latency", "throughput", "scalability", "scale", "capacity"), "Verify performance or scaling behaviour using the workload and thresholds supplied.", "Validate performance and scalability", "High", ["Apply the documented workload profile", "Measure throughput, latency, errors, and resource signals", "Compare results with supplied thresholds"], "Measured results are compared with supplied thresholds; no production SLA is invented.", "Load-test specification; executable only with an approved target and profile", ["load-test report", "latency/error metrics", "resource and replica metrics"]),
+        ("ROLLBACK", "Rollback and release recovery", "Rollback", ("rollback", "roll back", "failed upgrade", "release recovery"), "Verify the documented rollback path restores the required service state.", "Validate rollback", "Critical", ["Create the documented failed or unsafe release condition", "Invoke the authorized rollback procedure", "Verify workload, routing, and state after rollback"], "Rollback restores the required documented state without silently losing or duplicating data.", "Infrastructure specification only", ["helm history", "rollback status", "post-rollback health and data evidence"]),
+        ("REGRESSION", "Regression and backward compatibility", "Regression", ("regression", "backward compatibility", "existing behaviour", "compatibility"), "Verify existing supported workflows remain correct after the change.", "Run regression coverage", "High", ["Run the documented existing workflow suite", "Compare response, state, and compatibility results"], "Existing supported behaviour remains within the supplied acceptance criteria."),
+        ("MONITORING", "Monitoring, logging, metrics, and observability", "Observability", ("monitoring", "observability", "logs", "metrics", "tracing", "alert"), "Verify the operational signals needed to diagnose the requested behaviour are emitted.", "Validate monitoring and observability", "Medium", ["Trigger the requested workflow and failure paths", "Collect logs, metrics, traces, and alerts", "Correlate signals with request and deployment timelines"], "Required signals are available and correlate to the event; signal names and thresholds remain configuration-driven.", "Infrastructure/observability specification only", ["logs", "metrics", "traces", "alert history"]),
+        ("SECURITY", "Authentication, authorization, and secure handling", "Security", ("security", "authentication", "authorization", "access control", "tls", "secret"), "Verify security controls explicitly named by the requirement.", "Validate security controls", "High", ["Exercise allowed and denied identities using synthetic credentials", "Inspect authorization, transport, and secret-handling behaviour"], "Access and secret-handling behaviour matches the supplied security contract."),
+        ("CICD", "CI/CD build, test, deployment gate, and release validation", "CI/CD", ("ci/cd", "pipeline", "build", "deployment gate", "release validation"), "Verify the CI/CD controls named by the requirement.", "Validate CI/CD release controls", "High", ["Run the configured build and automated tests", "Verify deployment gates and release validation", "Verify rollback gate behaviour where documented"], "Pipeline decisions follow the configured gates and preserve the release policy.", "CI/CD specification; executable in the configured pipeline", ["build logs", "test report", "gate decision", "release/rollback record"]),
     ]
-    if duplicate or concurrent:
-        cases.append(
-            TestCase(
-                id="TF-003",
-                title="Verify concurrent duplicate registration",
-                category="Concurrency",
-                priority="Critical",
-                preconditions=[
-                    "Registration payload, identity field, and read-back endpoint are configured"
-                ],
-                steps=[
-                    "Send identical requests concurrently",
-                    "Validate response statuses",
-                    "Read records by logical identity",
-                    "Assert exactly one matching record exists",
-                ],
-                expected="Concurrent duplicate submissions result in exactly one logical record.",
-            )
-        )
-    if resilience:
-        cases.append(
-            TestCase(
-                id="TF-004",
-                title="Verify configured timeout behavior",
-                category="Resilience",
-                priority="Medium",
-                preconditions=["Timeout contract and test endpoint are configured"],
-                steps=["Send request with configured timeout", "Assert documented timeout/response behavior"],
-                expected="Timeout handling follows the configured contract; retry policy requires a separately documented test.",
-            )
-        )
 
+    requirements: list[ExtractedRequirement] = []
+    cases: list[TestCase] = []
+    for key, title, category, signals, statement, case_title, priority, steps, expected, *extras in rules:
+        matched = _rule_matches(text, signals)
+        if key == "WORKFLOW" or matched:
+            requirement = ExtractedRequirement(id=f"REQ-{key}", title=title, category=category, statement=statement, source_signals=matched or ["primary scenario"])
+            requirements.append(requirement)
+            feasibility = extras[0] if extras else "API scaffold"
+            evidence = extras[1] if len(extras) > 1 else ["HTTP response and structured test report", "Configured logs or state evidence"]
+            cases.append(_scenario(len(cases) + 1, requirement, case_title, category, priority, steps, expected, feasibility, evidence))
+
+    # A narrow request should remain narrow; a detailed requirement naturally activates more rules.
+    clarification_needed = [
+        "Provide the authoritative endpoint, schema, and expected statuses for API execution." if any(req.category == "API validation" for req in requirements) else "",
+        "Provide cluster, namespace, release, and authorization details before infrastructure execution." if any(req.category in {"Kubernetes", "Deployment", "Service routing", "Rollback"} for req in requirements) else "",
+        "Provide measurable workload thresholds before performance results can be judged." if any(req.category == "Performance" for req in requirements) else "",
+    ]
+    clarification_needed = [item for item in clarification_needed if item]
+    gaps = []
+    if not any(req.category == "Observability" for req in requirements):
+        gaps.append("Monitoring and correlation evidence was not explicitly requested.")
+    if not any(req.category == "Security" for req in requirements):
+        gaps.append("Security and authorization coverage was not explicitly requested.")
     interpretation = RequirementInterpretation(
         objective=f"Validate: {request.title}",
         system_under_test=_infer_sut(request),
         facts=[request.description],
+        requirements=requirements,
         assumptions=[
-            "Endpoints, payloads, credentials, expected statuses, and identity fields must come from the real API contract.",
-            "Concurrency verification requires a read-back endpoint that accurately reflects persisted records.",
+            "Endpoints, payloads, credentials, thresholds, release names, and expected statuses must come from the supplied contract.",
+            "Infrastructure scenarios are specifications unless the application is connected to an authorized test cluster.",
             "Tests use synthetic data in a non-production environment.",
         ],
-        acceptance_criteria=[
-            "Configured HTTP statuses are asserted explicitly.",
-            "Unexpected status codes and malformed JSON produce actionable failures.",
-            "Concurrency tests verify the logical-record count through a configured read-back endpoint.",
-            "No credentials are embedded in generated source.",
-        ],
+        acceptance_criteria=[req.statement for req in requirements],
         risks=[
-            "The scenario does not provide a verified API schema or endpoint catalog.",
-            "Cross-pod routing cannot be proven without routing/observability configuration.",
+            "The generator does not infer undocumented infrastructure settings, SLAs, response codes, or business rules.",
+            "Cross-pod routing and recovery cannot be proven by API-only execution without cluster and observability access.",
         ],
-        open_questions=[
-            "What are the registration endpoint, payload, authentication method, and response schema?",
-            "How can the persisted patient be queried by its logical identity?",
-            "Which status codes are documented for success, duplicate requests, and invalid input?",
-        ],
+        open_questions=clarification_needed,
+        coverage_gaps=gaps,
     )
-    return interpretation, cases
+    counts = Counter(case.category for case in cases)
+    summary = CoverageSummary(
+        total_scenarios=len(cases),
+        by_category=dict(counts),
+        critical_and_high_priority=[f"{case.id} — {case.title}" for case in cases if case.priority in {"Critical", "High"}],
+        requirements_covered=[f"{req.id} — {req.title}" for req in requirements],
+        coverage_gaps=gaps,
+        clarification_needed=clarification_needed,
+    )
+    return interpretation, cases, summary
 
 
 def _test_source(cases: list[TestCase]) -> str:
@@ -164,7 +188,7 @@ def _json_if_present(response):
 
 ''']
     categories = {case.category for case in cases}
-    if "Positive" in categories:
+    if categories.intersection({"Functional", "API validation", "Positive"}):
         parts.append(r'''def test_registration_happy_path(api_client):
     import pytest
     endpoint = os.getenv("TESTFORGE_REGISTER_ENDPOINT")
@@ -259,7 +283,7 @@ def _json_if_present(response):
 
 
 ''')
-    if "Resilience" in categories:
+    if categories.intersection({"Recovery and resilience", "Resilience"}):
         parts.append(r'''def test_registration_timeout_behavior(api_client):
     import requests
     import pytest
@@ -288,6 +312,11 @@ def build_files(
     cases: list[TestCase],
 ) -> list[GeneratedFile]:
     slug = _slug(request.title)
+    scenario_spec = "# Scenario specifications\n\n"
+    scenario_spec += "These scenarios are mapped to extracted requirements. Infrastructure scenarios are documentation/specifications unless an authorized cluster, Helm release, routing layer, or observability system is configured.\n\n"
+    for case in cases:
+        scenario_spec += f"## {case.id}: {case.title}\n\n"
+        scenario_spec += f"- Category: {case.category}\n- Priority: {case.priority}\n- Requirement: {case.requirement}\n- Automation feasibility: {case.automation_feasibility}\n- Expected results: {case.expected}\n- Evidence: {'; '.join(case.validation_evidence)}\n\n"
     readme = f'''# TestForge generated project
 
 ## Scenario
@@ -329,8 +358,9 @@ Copy-Item .env.example .env
 python -m pytest -v
 ```
 
-Tests lacking required configuration are skipped with an explicit explanation. Configured tests perform HTTP requests
-and assert the documented status and record-count expectations.
+Tests lacking required configuration are skipped with an explicit explanation. Configured API tests perform HTTP
+requests and assert documented expectations. Infrastructure scenarios are intentionally not emitted as fake
+executable tests; use the scenario specification and suggested evidence to connect them to your environment.
 '''
     env_example = '''TESTFORGE_BASE_URL=http://localhost:8000
 TESTFORGE_TOKEN=
@@ -351,6 +381,7 @@ TESTFORGE_EXPECT_TIMEOUT=false
 '''
     return [
         GeneratedFile(path="README.md", content=readme),
+        GeneratedFile(path="specs/scenario_matrix.md", content=scenario_spec),
         GeneratedFile(path="requirements.txt", content="pytest>=8.3,<9\nrequests>=2.32,<3\npython-dotenv>=1.0,<2\n"),
         GeneratedFile(path=".env.example", content=env_example),
         GeneratedFile(path="config/settings.py", content=(
@@ -399,16 +430,16 @@ TESTFORGE_EXPECT_TIMEOUT=false
 
 
 def generate(request: ScenarioRequest) -> StoredGeneration:
-    interpretation, cases = analyze(request)
+    interpretation, cases, coverage_summary = analyze(request)
 
     return StoredGeneration(
         request=request,
         interpretation=interpretation,
         test_cases=cases,
+        coverage_summary=coverage_summary,
         files=build_files(request, interpretation, cases),
         metadata={
             "provider": os.getenv("AI_PROVIDER", "local"),
             "prompt_version": "local-v1",
         },
     )
-

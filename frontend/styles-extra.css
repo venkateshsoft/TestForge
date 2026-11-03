@@ -1,0 +1,12 @@
+.coverage { margin-top: 20px; }
+.coverage-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.coverage-card { padding: 15px; background: #0c151d; border: 1px solid #223441; border-radius: 6px; display: flex; flex-direction: column; gap: 4px; }
+.coverage-card strong { color: var(--accent); font-size: 18px; }
+.coverage-card span { color: #9fb0b7; font-size: 11px; }
+.coverage-card.wide { grid-column: span 2; }
+.table-wrap { overflow: auto; }
+table { min-width: 950px; }
+@media (max-width: 600px) {
+  .coverage-grid { grid-template-columns: 1fr; }
+  .coverage-card.wide { grid-column: span 1; }
+}

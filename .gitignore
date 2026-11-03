@@ -4,5 +4,12 @@ __pycache__/
 *.pyc
 .env
 .pytest_cache/
+.pytest-tmp/
+.testforge-data/
+.ruff_cache/
+*.bak
+*_backup.py
+*_old.py
+*.log
 .coverage
 .DS_Store

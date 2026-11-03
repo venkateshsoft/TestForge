@@ -14,10 +14,12 @@ $('generation-form').addEventListener('submit', async (event) => {
 });
 
 function render(data) {
-  currentId = data.id; $('result').classList.remove('hidden'); $('result-title').textContent = data.request.title; $('download').href = `/api/v1/projects/${data.id}/download`; $('case-count').textContent = `${data.test_cases.length} scenarios`;
+  currentId = data.id; $('result').classList.remove('hidden'); $('result-title').textContent = data.request.title; $('download').href = `/api/v1/projects/${data.id}/download`; $('case-count').textContent = `${data.coverage_summary.total_scenarios} scenarios`;
   const i = data.interpretation;
-  $('interpretation-content').innerHTML = `<div class="info-block"><h3>Objective</h3><p>${esc(i.objective)}</p></div><div class="info-block"><h3>System under test</h3><p>${esc(i.system_under_test)}</p></div><div class="info-block"><h3>Acceptance criteria</h3><ul>${i.acceptance_criteria.map(item=>`<li>${esc(item)}</li>`).join('')}</ul></div><div class="info-block"><h3>Assumptions & open questions</h3><ul>${[...i.assumptions,...i.open_questions].map(item=>`<li>${esc(item)}</li>`).join('')}</ul></div>`;
-  $('cases-body').innerHTML = data.test_cases.map(c=>`<tr><td>${esc(c.id)}</td><td>${esc(c.title)}</td><td>${esc(c.category)}</td><td>${esc(c.priority)}</td><td>${esc(c.expected)}</td></tr>`).join('');
+  $('interpretation-content').innerHTML = `<div class="info-block"><h3>Objective</h3><p>${esc(i.objective)}</p></div><div class="info-block"><h3>System under test</h3><p>${esc(i.system_under_test)}</p></div><div class="info-block"><h3>Extracted requirements</h3><ul>${i.requirements.map(item=>`<li><strong>${esc(item.id)} · ${esc(item.title)}</strong><br>${esc(item.statement)}</li>`).join('')}</ul></div><div class="info-block"><h3>Assumptions & clarification needed</h3><ul>${[...i.assumptions,...i.open_questions].map(item=>`<li>${esc(item)}</li>`).join('')}</ul></div>`;
+  const summary = data.coverage_summary;
+  $('coverage-content').innerHTML = `<div class="coverage-card"><strong>${summary.total_scenarios}</strong><span>Total scenarios</span></div><div class="coverage-card"><strong>${Object.keys(summary.by_category).length}</strong><span>Categories</span></div><div class="coverage-card wide"><strong>By category</strong><span>${Object.entries(summary.by_category).map(([key,value])=>`${esc(key)} (${value})`).join(' · ')}</span></div><div class="coverage-card wide"><strong>Gaps</strong><span>${summary.coverage_gaps.length ? summary.coverage_gaps.map(esc).join(' · ') : 'No explicit gaps identified'}</span></div>`;
+  $('cases-body').innerHTML = data.test_cases.map(c=>`<tr><td>${esc(c.id)}</td><td>${esc(c.title)}</td><td>${esc(c.requirement)}</td><td>${esc(c.category)}</td><td>${esc(c.priority)}</td><td>${esc(c.automation_feasibility)}</td><td>${esc(c.expected)}</td></tr>`).join('');
   $('files-body').innerHTML = data.files.map(f=>`<div class="file-item">${esc(f.path)}</div>`).join('');
   $('validation-content').innerHTML = '<p class="empty">Static validation has not run for this generation.</p>'; document.querySelector('.result-section').scrollIntoView({behavior:'smooth'});
 }

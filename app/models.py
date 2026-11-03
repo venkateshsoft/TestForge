@@ -51,20 +51,42 @@ class TestCase(BaseModel):
     title: str
     category: str
     priority: str
+    requirement: str = ""
     preconditions: list[str]
     steps: list[str]
     expected: str
+    automation_feasibility: str = "API scaffold"
+    validation_evidence: list[str] = Field(default_factory=list)
     applicable: bool = True
+
+
+class ExtractedRequirement(BaseModel):
+    id: str
+    title: str
+    category: str
+    statement: str
+    source_signals: list[str] = Field(default_factory=list)
 
 
 class RequirementInterpretation(BaseModel):
     objective: str
     system_under_test: str
     facts: list[str]
+    requirements: list[ExtractedRequirement] = Field(default_factory=list)
     assumptions: list[str]
     acceptance_criteria: list[str]
     risks: list[str]
     open_questions: list[str]
+    coverage_gaps: list[str] = Field(default_factory=list)
+
+
+class CoverageSummary(BaseModel):
+    total_scenarios: int
+    by_category: dict[str, int]
+    critical_and_high_priority: list[str]
+    requirements_covered: list[str]
+    coverage_gaps: list[str]
+    clarification_needed: list[str]
 
 
 class GeneratedFile(BaseModel):
@@ -90,6 +112,7 @@ class GenerationResponse(BaseModel):
     request: ScenarioRequest
     interpretation: RequirementInterpretation
     test_cases: list[TestCase]
+    coverage_summary: CoverageSummary = Field(default_factory=lambda: CoverageSummary(total_scenarios=0, by_category={}, critical_and_high_priority=[], requirements_covered=[], coverage_gaps=[], clarification_needed=[]))
     files: list[GeneratedFile]
     validation: ValidationResult | None = None
 
@@ -104,6 +127,7 @@ class StoredGeneration(BaseModel):
     request: ScenarioRequest
     interpretation: RequirementInterpretation
     test_cases: list[TestCase]
+    coverage_summary: CoverageSummary = Field(default_factory=lambda: CoverageSummary(total_scenarios=0, by_category={}, critical_and_high_priority=[], requirements_covered=[], coverage_gaps=[], clarification_needed=[]))
     files: list[GeneratedFile]
     validation: ValidationResult | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
